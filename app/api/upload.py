@@ -3,14 +3,14 @@
 import os
 import uuid
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 
 from app.db.session import get_db
 from app.core.config import get_settings
 from app.core.logging import logger
-from app.models.schemas import UploadResponse, DeleteResponse
+from app.models.schemas import UploadResponse, DeleteResponse, DocumentResponse
 from app.models.document import Document, DocumentChunk
 from app.services.ingestion import ingest_document
 from app.services.tracking import log_ingestion_experiment
@@ -19,6 +19,7 @@ router = APIRouter(tags=["Documents"])
 settings = get_settings()
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -42,6 +43,11 @@ async def upload_document(
 
     try:
         content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB.",
+            )
         with open(file_path, "wb") as f:
             f.write(content)
     except Exception as e:
@@ -80,6 +86,22 @@ async def upload_document(
         chunk_count=chunk_count,
         message=f"Document indexed successfully with {chunk_count} chunks.",
     )
+
+
+@router.get("/documents", response_model=list[DocumentResponse])
+async def list_documents(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all indexed documents, newest first."""
+    result = await db.execute(
+        select(Document)
+        .order_by(Document.uploaded_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return result.scalars().all()
 
 
 @router.delete("/documents/{document_id}", response_model=DeleteResponse)
