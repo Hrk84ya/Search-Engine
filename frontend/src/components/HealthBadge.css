@@ -1,0 +1,27 @@
+.health-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.health-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-label {
+  color: var(--text-tertiary);
+}
+
+.status-healthy .health-dot { background: var(--success); }
+.status-degraded .health-dot { background: var(--warning); }
+.status-error .health-dot { background: var(--error); }
+.status-offline .health-dot { background: var(--text-tertiary); }
+.status-checking .health-dot {
+  background: var(--text-tertiary);
+  animation: pulse 1s infinite;
+}

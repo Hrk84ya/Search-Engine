@@ -1,0 +1,33 @@
+Kubernetes Overview
+
+Kubernetes (K8s) is an open-source container orchestration platform originally developed by Google.
+It automates the deployment, scaling, and management of containerized applications.
+
+Core Concepts:
+Pods are the smallest deployable units in Kubernetes. A pod encapsulates one or more containers,
+storage resources, a unique network IP, and options that govern how the containers should run.
+Pods are ephemeral by nature and are managed by higher-level controllers.
+
+Deployments provide declarative updates for Pods and ReplicaSets. You describe a desired state
+in a Deployment, and the Deployment Controller changes the actual state to the desired state
+at a controlled rate. Deployments support rolling updates and rollbacks.
+
+Services provide a stable network endpoint for accessing a set of Pods. They abstract away
+the ephemeral nature of Pods by providing a consistent IP address and DNS name.
+Service types include ClusterIP, NodePort, LoadBalancer, and ExternalName.
+
+Ingress manages external access to services in a cluster, typically HTTP/HTTPS.
+It provides load balancing, SSL termination, and name-based virtual hosting.
+
+ConfigMaps and Secrets store configuration data and sensitive information respectively.
+They decouple configuration from container images, making applications more portable.
+
+Persistent Volumes (PV) and Persistent Volume Claims (PVC) provide storage that persists
+beyond the lifecycle of individual Pods. This is essential for stateful applications
+like databases.
+
+Namespaces provide a mechanism for isolating groups of resources within a single cluster.
+They are useful for dividing cluster resources between multiple users or teams.
+
+Helm is a package manager for Kubernetes that simplifies the deployment and management
+of applications. Helm charts are packages of pre-configured Kubernetes resources.

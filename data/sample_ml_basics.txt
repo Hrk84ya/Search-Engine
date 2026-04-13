@@ -1,0 +1,41 @@
+Machine Learning Fundamentals
+
+Machine learning is a subset of artificial intelligence that focuses on building systems that learn from data.
+Instead of being explicitly programmed, these systems improve their performance on a specific task through experience.
+
+Supervised Learning:
+In supervised learning, the algorithm learns from labeled training data. Each training example consists of an input
+and a desired output. Common algorithms include linear regression, logistic regression, decision trees, random forests,
+support vector machines, and neural networks. Supervised learning is used for classification and regression tasks.
+
+Unsupervised Learning:
+Unsupervised learning works with unlabeled data. The algorithm tries to find hidden patterns or structures in the data.
+Common techniques include clustering (K-means, DBSCAN, hierarchical clustering), dimensionality reduction (PCA, t-SNE),
+and association rule learning. Unsupervised learning is useful for exploratory data analysis and feature engineering.
+
+Deep Learning:
+Deep learning is a subset of machine learning based on artificial neural networks with multiple layers.
+These deep neural networks can learn hierarchical representations of data. Key architectures include
+Convolutional Neural Networks (CNNs) for image processing, Recurrent Neural Networks (RNNs) for sequential data,
+and Transformers for natural language processing. Deep learning has achieved state-of-the-art results in
+computer vision, speech recognition, and natural language understanding.
+
+Natural Language Processing:
+NLP is a field at the intersection of computer science, AI, and linguistics. It focuses on enabling computers
+to understand, interpret, and generate human language. Key tasks include text classification, named entity
+recognition, sentiment analysis, machine translation, and question answering. Modern NLP heavily relies on
+transformer-based models like BERT, GPT, and T5.
+
+Embeddings and Vector Search:
+Embeddings are dense vector representations of data (text, images, etc.) in a continuous vector space.
+Similar items are mapped to nearby points in this space. Sentence embeddings capture semantic meaning of text.
+Vector search (or similarity search) finds the most similar vectors to a query vector using distance metrics
+like cosine similarity, Euclidean distance, or dot product. Vector databases like pgvector, Pinecone, and
+Weaviate are optimized for storing and searching high-dimensional vectors efficiently.
+
+Retrieval-Augmented Generation (RAG):
+RAG combines information retrieval with text generation. Instead of relying solely on a language model's
+parametric knowledge, RAG first retrieves relevant documents from a knowledge base, then uses them as context
+for generating answers. This approach reduces hallucination, provides up-to-date information, and allows
+grounding responses in specific source documents. RAG pipelines typically involve: document chunking,
+embedding generation, vector storage, similarity search, context assembly, and LLM-based answer generation.
