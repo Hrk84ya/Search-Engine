@@ -10,6 +10,8 @@ from sqlalchemy import select, delete, func
 from app.db.session import get_db
 from app.core.config import get_settings
 from app.core.logging import logger
+from app.core.auth import require_auth
+from app.core.rate_limit import rate_limit
 from app.models.schemas import UploadResponse, DeleteResponse, DocumentResponse
 from app.models.document import Document, DocumentChunk
 from app.services.ingestion import ingest_document
@@ -22,10 +24,11 @@ ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-@router.post("/upload", response_model=UploadResponse)
+@router.post("/upload", response_model=UploadResponse, dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60))])
 async def upload_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     """Upload and index a document (PDF, TXT, DOCX)."""
     # Validate file type
@@ -93,6 +96,7 @@ async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     """List all indexed documents, newest first."""
     result = await db.execute(
@@ -108,6 +112,7 @@ async def list_documents(
 async def delete_document(
     document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     """Delete a document and all its chunks."""
     # Fetch the document

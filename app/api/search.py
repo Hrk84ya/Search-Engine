@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.core.config import get_settings
 from app.core.logging import logger
+from app.core.auth import require_auth
+from app.core.rate_limit import rate_limit
 from app.models.schemas import SearchRequest, SearchResponse
 from app.services.retrieval import search_similar_chunks
 from app.services.cache import get_cached_result, set_cached_result
@@ -18,10 +20,11 @@ router = APIRouter(tags=["Search"])
 settings = get_settings()
 
 
-@router.post("/search", response_model=SearchResponse)
+@router.post("/search", response_model=SearchResponse, dependencies=[Depends(rate_limit(max_requests=20, window_seconds=60))])
 async def semantic_search(
     request: SearchRequest,
     db: AsyncSession = Depends(get_db),
+    _user: dict = Depends(require_auth),
 ):
     """Perform semantic search with RAG-generated answer."""
     start = time.time()
