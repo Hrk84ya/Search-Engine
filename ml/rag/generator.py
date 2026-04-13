@@ -1,6 +1,6 @@
 """RAG text generation using Hugging Face transformers."""
 
-from typing import List
+from typing import List, Optional
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from app.core.config import get_settings
 from app.core.logging import logger
@@ -9,16 +9,29 @@ settings = get_settings()
 
 _tokenizer = None
 _model = None
+_load_error: Optional[str] = None
 
 
 def _load_model():
     """Lazy-load the LLM model and tokenizer."""
-    global _tokenizer, _model
-    if _model is None:
+    global _tokenizer, _model, _load_error
+    if _model is not None:
+        return _tokenizer, _model
+    if _load_error is not None:
+        raise RuntimeError(f"LLM unavailable: {_load_error}")
+    try:
         logger.info(f"Loading LLM: {settings.llm_model}")
         _tokenizer = AutoTokenizer.from_pretrained(settings.llm_model)
         _model = AutoModelForSeq2SeqLM.from_pretrained(settings.llm_model)
         logger.info("LLM loaded successfully")
+        return _tokenizer, _model
+    except Exception as e:
+        _load_error = str(e)
+        logger.error(f"Failed to load LLM '{settings.llm_model}': {e}")
+        raise RuntimeError(
+            f"LLM failed to load. Check your network connection or model name "
+            f"'{settings.llm_model}'. Error: {e}"
+        ) from e
     return _tokenizer, _model
 
 

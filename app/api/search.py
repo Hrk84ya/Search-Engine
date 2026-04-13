@@ -2,7 +2,7 @@
 
 import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -35,11 +35,22 @@ async def semantic_search(
         return SearchResponse(**cached)
 
     # Retrieve similar chunks
-    chunks = await search_similar_chunks(db, request.query, request.top_k)
+    try:
+        chunks = await search_similar_chunks(db, request.query, request.top_k)
+    except RuntimeError as e:
+        logger.error(f"Embedding model error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Embedding model unavailable. Search cannot be performed. Please try again later.",
+        )
 
     # Generate answer via RAG
     context_texts = [c.chunk_text for c in chunks]
-    answer = generate_answer(request.query, context_texts)
+    try:
+        answer = generate_answer(request.query, context_texts)
+    except RuntimeError as e:
+        logger.error(f"ML model error: {e}")
+        answer = "Answer generation is temporarily unavailable. The ML model could not be loaded."
 
     latency_ms = round((time.time() - start) * 1000, 2)
 

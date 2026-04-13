@@ -67,6 +67,12 @@ async def upload_document(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        logger.error(f"ML model error during ingestion: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="ML model unavailable. Document could not be indexed. Please try again later.",
+        )
     except Exception as e:
         logger.error(f"Ingestion failed: {e}")
         raise HTTPException(status_code=500, detail="Document ingestion failed")

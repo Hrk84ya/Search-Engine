@@ -1,6 +1,6 @@
 """Embedding service using sentence-transformers."""
 
-from typing import List
+from typing import List, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from app.core.config import get_settings
@@ -8,17 +8,29 @@ from app.core.logging import logger
 
 settings = get_settings()
 
-_model: SentenceTransformer = None
+_model: Optional[SentenceTransformer] = None
+_load_error: Optional[str] = None
 
 
 def get_embedding_model() -> SentenceTransformer:
     """Lazy-load the embedding model singleton."""
-    global _model
-    if _model is None:
+    global _model, _load_error
+    if _model is not None:
+        return _model
+    if _load_error is not None:
+        raise RuntimeError(f"Embedding model unavailable: {_load_error}")
+    try:
         logger.info(f"Loading embedding model: {settings.embedding_model}")
         _model = SentenceTransformer(settings.embedding_model)
         logger.info("Embedding model loaded successfully")
-    return _model
+        return _model
+    except Exception as e:
+        _load_error = str(e)
+        logger.error(f"Failed to load embedding model '{settings.embedding_model}': {e}")
+        raise RuntimeError(
+            f"Embedding model failed to load. Check your network connection or model name "
+            f"'{settings.embedding_model}'. Error: {e}"
+        ) from e
 
 
 def generate_embeddings(texts: List[str]) -> List[List[float]]:
