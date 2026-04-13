@@ -85,9 +85,15 @@ Opens at http://localhost:3000 with API proxy to port 8000.
 
 ### 5. Index Sample Documents
 
+First grab a token, then upload:
+
 ```bash
-curl -X POST http://localhost:8000/upload -F "file=@data/sample_ml_basics.txt"
-curl -X POST http://localhost:8000/upload -F "file=@data/sample_kubernetes.txt"
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+curl -X POST http://localhost:8000/upload -H "Authorization: Bearer $TOKEN" -F "file=@data/sample_ml_basics.txt"
+curl -X POST http://localhost:8000/upload -H "Authorization: Bearer $TOKEN" -F "file=@data/sample_kubernetes.txt"
 ```
 
 ### 6. Full Docker Deployment
@@ -115,15 +121,33 @@ curl -X POST http://localhost:8000/auth/token \
 ### Upload a Document
 ```bash
 curl -X POST http://localhost:8000/upload \
+  -H "Authorization: Bearer $TOKEN" \
   -F "file=@data/sample_ml_basics.txt"
 # {"document_id":"...","filename":"sample_ml_basics.txt","chunk_count":3,"message":"Document indexed successfully with 3 chunks."}
 ```
 
-Supported formats: PDF, TXT, DOCX.
+Supported formats: PDF, TXT, DOCX. Max file size: 50MB.
+
+### List Documents
+```bash
+curl http://localhost:8000/documents \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Returns all indexed documents (paginated via `skip` and `limit` query params).
+
+### Delete a Document
+```bash
+curl -X DELETE http://localhost:8000/documents/{document_id} \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Deletes the document and all its chunks.
 
 ### Semantic Search
 ```bash
 curl -X POST http://localhost:8000/search \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"query": "What is RAG?", "top_k": 3}'
 ```
@@ -165,6 +189,7 @@ project-root/
 │   └── src/components/ # Header, SearchBar, ResultsPanel, UploadModal, HealthBadge
 ├── data/               # Sample documents for testing
 ├── tests/              # Unit tests (chunker, parser, API)
+├── uploads/            # Temporary upload directory (gitignored)
 ├── requirements.txt
 ├── .env.example        # Environment variable template
 └── README.md
@@ -177,13 +202,19 @@ All settings are in `.env` (or environment variables):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | `postgresql+asyncpg://...` | Async DB connection string |
+| `SYNC_DATABASE_URL` | `postgresql://...` | Sync DB connection string (used by MLflow) |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis cache URL |
 | `EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | HF embedding model |
 | `LLM_MODEL` | `google/flan-t5-large` | HF text generation model |
+| `EMBEDDING_DIMENSION` | `384` | Embedding vector dimension |
+| `MLFLOW_TRACKING_URI` | `http://localhost:5000` | MLflow server URL |
 | `CHUNK_SIZE` | `200` | Words per chunk |
 | `CHUNK_OVERLAP` | `30` | Overlapping words between chunks |
 | `TOP_K` | `5` | Default retrieval count |
 | `SECRET_KEY` | — | JWT signing key (change in production) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | JWT token lifetime |
+| `UPLOAD_DIR` | `./uploads` | Temp directory for uploaded files |
+| `LOG_LEVEL` | `INFO` | Application log level |
 
 ## Running Tests
 
@@ -198,6 +229,17 @@ pytest tests/ -v
 - With GPU, inference drops to under 1s.
 - Redis caching returns repeated queries instantly (300s TTL).
 - Chunk deduplication prevents duplicate results from re-uploaded documents.
+
+## Rate Limiting
+
+Endpoints are rate-limited per client IP via Redis:
+
+| Endpoint | Limit |
+|----------|-------|
+| `POST /upload` | 5 requests / 60s |
+| `POST /search` | 20 requests / 60s |
+
+If Redis is unavailable, rate limiting is silently skipped.
 
 ## MLflow Dashboard
 
