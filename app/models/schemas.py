@@ -59,3 +59,9 @@ class UploadResponse(BaseModel):
     filename: str
     chunk_count: int
     message: str
+
+
+class DeleteResponse(BaseModel):
+    document_id: UUID
+    filename: str
+    message: str

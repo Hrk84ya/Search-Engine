@@ -1,15 +1,17 @@
-"""Document upload endpoint."""
+"""Document upload and management endpoints."""
 
 import os
 import uuid
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 
 from app.db.session import get_db
 from app.core.config import get_settings
 from app.core.logging import logger
-from app.models.schemas import UploadResponse
+from app.models.schemas import UploadResponse, DeleteResponse
+from app.models.document import Document, DocumentChunk
 from app.services.ingestion import ingest_document
 from app.services.tracking import log_ingestion_experiment
 
@@ -77,4 +79,37 @@ async def upload_document(
         filename=file.filename,
         chunk_count=chunk_count,
         message=f"Document indexed successfully with {chunk_count} chunks.",
+    )
+
+
+@router.delete("/documents/{document_id}", response_model=DeleteResponse)
+async def delete_document(
+    document_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a document and all its chunks."""
+    # Fetch the document
+    result = await db.execute(
+        select(Document).where(Document.id == document_id)
+    )
+    doc = result.scalar_one_or_none()
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    filename = doc.filename
+
+    # Delete chunks first, then the document
+    await db.execute(
+        delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+    )
+    await db.delete(doc)
+    await db.commit()
+
+    logger.info(f"Deleted document {document_id} ({filename})")
+
+    return DeleteResponse(
+        document_id=document_id,
+        filename=filename,
+        message=f"Document '{filename}' and all its chunks deleted successfully.",
     )
