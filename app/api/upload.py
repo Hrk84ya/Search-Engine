@@ -53,6 +53,8 @@ async def upload_document(
             )
         with open(file_path, "wb") as f:
             f.write(content)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to save file: {e}")
         raise HTTPException(status_code=500, detail="Failed to save uploaded file")
